@@ -1,0 +1,9 @@
+[package]
+name = "modbus-slave"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1.45.0", features = ["macros", "rt-multi-thread", "time"] }
+tokio-modbus = { version = "0.16.1", default-features = false, features = ["tcp-server","tcp"] }
+anyhow = "1.0.98"
