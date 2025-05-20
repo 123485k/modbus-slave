@@ -20,7 +20,6 @@ impl ModbusRegisterAccess for ModleHandler {
     }
 
     fn write_regs(&mut self, _addr: u16, _values: &[u16]) -> Result<(), ExceptionCode> {
-        println!("{:?}", _values);
         let mut hold_regs = self.holding_registers.lock().unwrap();
         if _addr as usize + _values.len() > hold_regs.len() {
             return Err(ExceptionCode::IllegalDataAddress);

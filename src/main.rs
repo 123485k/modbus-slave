@@ -1,16 +1,15 @@
 use std::{
-    net::SocketAddr,
+    io::{self, Write}, net::SocketAddr
 };
 
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, time};
 
 use tokio_modbus::{
-    prelude::*,
     server::tcp::{Server, accept_tcp_connection},
 };
 
 mod modbus;
-use modbus::{ModbusRegisterAccess, ModbusService};
+use modbus::{ModbusService};
 
 mod model;
 use model::{ModleHandler};
@@ -24,6 +23,15 @@ async fn main() -> Result<(), anyhow::Error> {
     let socket_addr: std::net::SocketAddr = "0.0.0.0:1502".parse().unwrap();
     tokio::spawn(async move {
         handler_for_update.update_loop().await;
+    });
+    let handler_for_print = handler.clone();
+    tokio::spawn(async move {
+        let mut interval = time::interval(time::Duration::from_millis(100));
+        loop {
+            interval.tick().await;
+            print!("\r{:?}", handler_for_print.get_stat());
+            io::stdout().flush().unwrap();
+        }
     });
     println!("Starting up server on {socket_addr}");
     let listener = TcpListener::bind(socket_addr).await?;

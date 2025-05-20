@@ -74,6 +74,27 @@ impl ModleHandler {
         }
     }
 
+    fn read_registers(&self, hold_regs: &[u16], module_stat: &mut ModelStat) {
+        module_stat.paras.val_a = Self::get_float_from_2_u16(hold_regs, 2) as f64;
+        module_stat.paras.val_b = Self::get_float_from_2_u16(hold_regs, 4) as f64;
+        module_stat.paras.val_out = Self::get_float_from_2_u16(hold_regs, 6) as f64;
+    }
+
+    fn write_register(&self, in_regs: &mut [u16], h_liquid: f64) {
+        (in_regs[3], in_regs[2]) = Self::float_to_2_u16_be(h_liquid as f32);
+    }
+
+    pub fn get_stat(&self) -> String {
+        let module_stat = self.module_stats.lock().unwrap();
+        format!(
+            "val_a: {:.2}, val_b: {:.2}, val_out: {:.2}, h_liquid: {:.2}",
+            module_stat.paras.val_a,
+            module_stat.paras.val_b,
+            module_stat.paras.val_out,
+            module_stat.config.h_liquid
+        )
+    }
+
     pub async fn update_loop(&self) {
         let ts = 100;
         let mut interval = time::interval(time::Duration::from_millis(ts));
@@ -81,9 +102,7 @@ impl ModleHandler {
             interval.tick().await;
             let hold_regs = self.holding_registers.lock().unwrap();
             let mut module_stat = self.module_stats.lock().unwrap();
-            module_stat.paras.val_a = Self::get_float_from_2_u16(&hold_regs, 2) as f64;
-            module_stat.paras.val_b = Self::get_float_from_2_u16(&hold_regs, 4) as f64;
-            module_stat.paras.val_out = Self::get_float_from_2_u16(&hold_regs, 6) as f64;
+            self.read_registers(&hold_regs, &mut module_stat);
 
             let out = (module_stat.config.h_liquid * 9.81 * 2.0).sqrt()
                 * PI
@@ -100,7 +119,7 @@ impl ModleHandler {
                 .max(0.0)
                 .min(module_stat.config.h_tank);
             let mut in_regs = self.input_registers.lock().unwrap();
-            (in_regs[3], in_regs[2]) = Self::float_to_2_u16_be(module_stat.config.h_liquid as f32);
+            self.write_register(&mut in_regs, module_stat.config.h_liquid);
         }
     }
 }
